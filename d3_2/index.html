@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Sign Language Bubble Chart</title>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            text-align: center;
+            font-family: 'Montserrat', sans-serif;
+
+        }
+
+        h1 {
+            margin-top: 0;
+            /* Reduce space above heading */
+            margin-bottom: -70px;
+            /* Adjust bottom margin as needed */
+        }
+
+        #chart {
+            margin: 0;
+            padding: 0;
+            position: relative;
+            /* Changed to relative for better control */
+        }
+
+        svg {
+            display: block;
+            margin: auto;
+        }
+
+        text {
+            font-family: 'Montserrat', sans-serif;
+        }
+    </style>
+</head>
+
+<body>
+    <h1 style="text-align: center;">Most popular classes</h1>
+    <div id="chart"></div>
+
+
+
+
+    <script>
+        // Load the data from the JSON file
+        d3.json("data.json").then(function (data) {
+            // Assuming your data is in the format { "nodes": [...] }
+            let nodes_data = data.nodes;
+
+            // 1. Preprocess the data
+            let classCounts = {};
+            nodes_data.forEach(node => {
+                if (classCounts[node.class]) {
+                    classCounts[node.class] += 1;
+                } else {
+                    classCounts[node.class] = 1;
+                }
+            });
+
+            // 2. Set up the SVG container
+            let width = window.innerWidth, height = window.innerHeight;
+            let svg = d3.select("body").append("svg")
+                .attr("width", width)
+                .attr("height", height);
+
+            // 3. Create the bubble chart
+            let bubble = d3.pack()
+                .size([width, height])
+                .padding(1);
+
+            let nodes = d3.hierarchy({ children: Object.entries(classCounts) })
+                .sum(d => d[1]);
+
+            let node = svg.selectAll(".node")
+                .data(bubble(nodes).leaves())
+                .enter().append("g")
+                .attr("class", "node")
+                .attr("transform", d => `translate(${d.x},${d.y})`);
+
+            node.append("circle")
+                .attr("r", d => d.r)
+                .attr("fill", "lightblue"); // Choose your color
+
+            // 4. Add labels (optional)
+            node.append("text")
+                .attr("dy", ".3em")
+                .style("text-anchor", "middle")
+                .style("font-family", "Montserrat") // Apply Montserrat font here
+                .text(d => d.data[0]);
+
+            //5. Add tooltips (optional)
+            //This section is commented out as it requires additional implementation
+            node.on("mouseover", function (d) {
+                // Display tooltip with id and language
+            })
+                .on("mouseout", function (d) {
+                    // Hide tooltip
+                });
+
+        }); // Closing the .then() function
+
+    </script>
+</body>
+
+</html>

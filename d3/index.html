@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D3.js Graph Visualization</title>
+    <style>
+        body{
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <script>
+        // Load your JSON data (replace 'data.json' with your file)
+        d3.json('data.json').then(function(data) {
+            // Set up the SVG container
+            const width = window.innerWidth;  // Use the window width
+            const height = window.innerHeight; // Use the window height
+
+            const svg = d3.select('body').append('svg')
+                .attr('width', width)
+                .attr('height', height);
+
+            // Create a force simulation
+            const simulation = d3.forceSimulation()
+                .force('link', d3.forceLink().id(d => d.id))
+                .force('charge', d3.forceManyBody(-1000))
+                .force('center', d3.forceCenter(width / 2, height / 2))
+                .force("x", d3.forceX(width / 2).strength(0.5))
+                .force("y", d3.forceY(height / 2).strength(0.5));
+
+            // Add links and nodes to the simulation
+            const links = createLinks(data.nodes);
+            const nodes = data.nodes;
+
+            simulation.nodes(nodes)
+                .on('tick', ticked);
+
+            simulation.force('link')
+                .links(links);
+
+            // Create links
+            const link = svg.selectAll('.link')
+                .data(links)
+                .enter().append('line')
+                .attr('class', 'link');
+
+            // Create nodes
+            const node = svg.selectAll('.node')
+                .data(nodes)
+                .enter().append('g')
+                .attr('class', 'node')
+                .on('click', showConnections);
+
+            // Add circles to nodes
+            node.append('circle')
+                .attr('r', 3)
+                .style('fill', '#0077b6');
+
+            // Add labels to nodes (initially hidden)
+            const label = node.append('text')
+                .attr('class', 'label')
+                .text(d => d.id)
+                .style('visibility', 'hidden');
+
+            // Update positions of nodes and links on each tick
+            function ticked() {
+                link
+                    .attr('x1', d => d.source.x)
+                    .attr('y1', d => d.source.y)
+                    .attr('x2', d => d.target.x)
+                    .attr('y2', d => d.target.y);
+
+                node
+                    .attr('transform', d => `translate(${d.x},${d.y})`);
+            }
+
+            // Function to create links based on nodes' class
+            function createLinks(nodes) {
+                const links = [];
+                const classNodes = {};
+
+                nodes.forEach(node => {
+                    const nodeClass = node.class;
+                    if (!classNodes[nodeClass]) {
+                        classNodes[nodeClass] = [];
+                    }
+                    classNodes[nodeClass].push(node);
+                });
+
+                Object.values(classNodes).forEach(classGroup => {
+                    for (let i = 0; i < classGroup.length - 1; i++) {
+                        for (let j = i + 1; j < classGroup.length; j++) {
+                            links.push({ source: classGroup[i].id, target: classGroup[j].id });
+                        }
+                    }
+                });
+
+                return links;
+            }
+
+            // Function to handle node click and toggle label visibility
+            function showConnections(clickedNode) {
+                // Toggle visibility of labels
+                label.style('visibility', d => (d === clickedNode) ? 'visible' : 'hidden');
+
+                // Toggle visibility of links
+                link.style('visibility', d =>
+                    (d.source.id === clickedNode.id || d.target.id === clickedNode.id) ? 'visible' : 'hidden'
+                );
+
+                // Remove existing connection lines
+                svg.selectAll('.connection').remove();
+
+                // Get connections for the clicked node
+                const connections = links.filter(link =>
+                    link.source.id === clickedNode.id || link.target.id === clickedNode.id
+                );
+
+                // Create lines for connections
+                svg.selectAll('.connection')
+                    .data(connections)
+                    .enter().append('line')
+                    .attr('class', 'connection')
+                    .attr('x1', d => d.source.x)
+                    .attr('y1', d => d.source.y)
+                    .attr('x2', d => d.target.x)
+                    .attr('y2', d => d.target.y)
+                    .attr("stroke", "#aaa")
+                    .attr("stroke-width", "1px"); // Customize the connection line style as needed
+            }
+        });
+    </script>
+</body>
+</html>
